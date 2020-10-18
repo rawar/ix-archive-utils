@@ -44,7 +44,7 @@ years_dict = {
 }
 
 def pdf_to_page_file(pdf_filename, txt_filename):
-    fp = open(filename, 'rb')
+    fp = open(pdf_filename, 'rb')
     rsrcmgr = PDFResourceManager()
     retstr = io.StringIO()
     print(type(retstr))
@@ -56,7 +56,9 @@ def pdf_to_page_file(pdf_filename, txt_filename):
     for pageNumber, page in enumerate(PDFPage.get_pages(fp)):
         interpreter.process_page(page)
         data = retstr.getvalue()
-        with open(f"{txt_filename}_{page_no}.txt", 'wb') as file:
+        txt_fname = f"{txt_filename}_{page_no}.txt"
+        print(f"convert {pdf_filename} => {txt_fname}")
+        with open(txt_fname, 'wb') as file:
             file.write(data.encode('utf-8'))
         data = ''
         retstr.truncate(0)
@@ -90,33 +92,27 @@ def convert_pdf_to_page_files(filenames_dict):
         pdf_to_page_file(source_file, target_file) 
 
 
-input_start_dir = '/Users/rwartala/Google Drive/data/ix-archive/daten'
-output_start_dir = '/Users/rwartala/Google Drive/data/ix-archive/texts'
-pdf_files = get_files_by_pattern(input_start_dir, '.pdf')
-html_files = get_files_by_pattern(input_start_dir, '.htm')
-
-pdf2txt_dict = flatten_output_filenames(output_start_dir, pdf_files, years_dict)
-convert_pdf_to_page_files(pdf2txt_dict)
+def remove_small_files(file_size_max_in_bytes):
+    if os.path.getsize(file) <  file_size_max_in_bytes:
+        os.remove(file)
 
 
-# ix_[year]_[volume]_[page].txt
+def main():
+    # input directory for iX archive data
+    input_start_dir = '/Users/rwartala/Google Drive/data/ix-archive/daten'
+    # output directory for iX text files 
+    output_start_dir = '/Users/rwartala/Google Drive/data/ix-archive/texts'
+    # all iX achive pdf files
+    pdf_files = get_files_by_pattern(input_start_dir, '.pdf')
+    # all iX archive hhtml files
+    html_files = get_files_by_pattern(input_start_dir, '.htm')
 
-#text = convert_pdf_to_string(filename)
-#print(text)
-#pdfpage_to_file(filename)
-# /Volumes/iX USB
+    # build up all output file names based on year and edition
+    pdf2txt_dict = flatten_output_filenames(output_start_dir, pdf_files, years_dict)
 
-# daten/Jahrgang[00-99]/Ausgabe[01-13/Seite[000-1XX]
-# Jahrgänge:
-# 88 => 1988 (HTML)
-# ...
-# 99 => 1999 (HTML)
-# 00 => 2000 (HTML)
-# 01 => 2001 (HTML)
-# 02 => 2002 (HTML)
-# 03 => 2003 (HTML)
-# ...
-# 07 => 2007 (HTML)
-# 08 => 2008 (PDF)
-# ...
-# 19 => 2019 (PDF)
+    # convert the pdf editions to page-based text files
+    convert_pdf_to_page_files(pdf2txt_dict)
+
+if __name__ == "__main__":
+    main()
+
