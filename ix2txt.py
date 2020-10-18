@@ -48,7 +48,8 @@ def pdf_to_page_file(pdf_filename, txt_filename):
     rsrcmgr = PDFResourceManager()
     retstr = io.StringIO()
     print(type(retstr))
-    codec = 'utf-8'
+    #codec = 'utf-8'
+    codec = 'iso-8859-1'
     laparams = LAParams()
     device = TextConverter(rsrcmgr, retstr, codec=codec, laparams=laparams)
     interpreter = PDFPageInterpreter(rsrcmgr, device)
@@ -60,6 +61,7 @@ def pdf_to_page_file(pdf_filename, txt_filename):
         print(f"convert {pdf_filename} => {txt_fname}")
         with open(txt_fname, 'wb') as file:
             file.write(data.encode('utf-8'))
+            #file.write(data.encode('iso-8859-1'))
         data = ''
         retstr.truncate(0)
         retstr.seek(0)
