@@ -4,6 +4,8 @@ from pdfminer.converter import XMLConverter, HTMLConverter, TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfparser import PDFParser
+from dehyphen import FlairScorer
+from dehyphen.format import text_to_format, format_to_paragraph
 import io
 import os
 
@@ -99,21 +101,68 @@ def remove_small_files(file_size_max_in_bytes):
         os.remove(file)
 
 
+def dehyphen_txt_file(txt_filename):
+    txt_file = open(txt_filename,'r', encoding='utf-8')
+    text = txt_file.read()
+
+    scorer = FlairScorer(lang="de")
+    special_format = text_to_format(text)
+    fixed_hyphens = scorer.dehyphen(special_format)
+
+    # checks if two paragraphs can be joined, useful to, e.g., reverse page breaks.
+    joined_paragraph = scorer.is_split_paragraph(fixed_hyphens[:2])
+    return joined_paragraph
+
+
+
+
 def main():
     # input directory for iX archive data
     input_start_dir = '/Users/rwartala/Google Drive/data/ix-archive/daten'
     # output directory for iX text files 
     output_start_dir = '/Users/rwartala/Google Drive/data/ix-archive/texts'
     # all iX achive pdf files
-    pdf_files = get_files_by_pattern(input_start_dir, '.pdf')
+    # pdf_files = get_files_by_pattern(input_start_dir, '.pdf')
     # all iX archive hhtml files
-    html_files = get_files_by_pattern(input_start_dir, '.htm')
+    # html_files = get_files_by_pattern(input_start_dir, '.htm')
 
     # build up all output file names based on year and edition
-    pdf2txt_dict = flatten_output_filenames(output_start_dir, pdf_files, years_dict)
+    # pdf2txt_dict = flatten_output_filenames(output_start_dir, pdf_files, years_dict)
 
     # convert the pdf editions to page-based text files
-    convert_pdf_to_page_files(pdf2txt_dict)
+    # convert_pdf_to_page_files(pdf2txt_dict)
+
+    # dehyphen_text = dehyphen_txt_file('/Users/rwartala/Google Drive/data/ix-archive/texts/ix_2019-13_99.txt')
+    # print(dehyphen_text)
+
+    some_german_text = """Dabei geraten die nicht primär monetären Folgen der Cyber-
+kriminalität außerhalb der Unternehmenswirklichkeit oftmals all-
+zu leicht aus dem Blick. Schon seit geraumer Zeit schwappt eine
+Welle  sogenannter  Sextortion-Mails  nach  der  anderen  durchs
+Netz. Täter behaupten, man habe den Rechner des Opfers und
+die Webcam gehackt, Aufnahmen sexueller Handlungen des Be-
+troffenen beim Besuch einschlägiger Erotik-Seiten im Netz an-
+gefertigt und werde diese nunmehr wahlweise dem Arbeitgeber,
+den Facebook-Freunden oder der Familie zusenden, wenn das
+Opfer nicht einen Betrag in virtuellen Währungen als Lösegeld
+überweise.
+
+Für den IT-Professional ist die Erpressermasche leicht als Fake
+zu durchschauen. Der weniger IT-affine Durchschnittsbürger sieht
+sich real und erheblich in seiner Privatsphäre verletzt. Über die
+Hotlines der Strafverfolgungsbehörden melden sich nicht weni-
+ge verzweifelte Anzeigeerstatter. Auch solche Massendelinquenz
+ist geeignet, das Vertrauen in die digitalisierte Wirklichkeit zu
+untergraben.
+"""
+
+    scorer = FlairScorer(lang="de")
+    special_format = text_to_format(some_german_text)
+    fixed_hyphens = scorer.dehyphen(special_format)
+    joined_paragraph = scorer.is_split_paragraph(fixed_hyphens[0], fixed_hyphens[1])
+    print(joined_paragraph)
+
+
 
 if __name__ == "__main__":
     main()
