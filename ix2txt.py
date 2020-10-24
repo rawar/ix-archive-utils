@@ -8,49 +8,51 @@ from dehyphen import FlairScorer
 from dehyphen.format import text_to_format, format_to_paragraph
 import io
 import os
+import re
 
 filename = '/Users/rwartala/Google Drive/data/ix-archive/daten/19/01/ix1901.pdf'
 years_dict = {
-    '88':'1988',
-    '89':'1989',
-    '90':'1990',
-    '91':'1991',
-    '92':'1992',
-    '93':'1993',
-    '94':'1994',
-    '95':'1995',
-    '96':'1996',
-    '97':'1997',
-    '98':'1998',
-    '99':'1999',
-    '00':'2000',
-    '01':'2001',
-    '02':'2002',
-    '03':'2003',
-    '04':'2004',
-    '05':'2005',
-    '06':'2006',
-    '07':'2007',
-    '08':'2008',
-    '09':'2009',
-    '10':'2010',
-    '11':'2011',
-    '12':'2012',
-    '13':'2013',
-    '14':'2014',
-    '15':'2015',
-    '16':'2016',
-    '17':'2017',
-    '18':'2018',
-    '19':'2019'
+    '88': '1988',
+    '89': '1989',
+    '90': '1990',
+    '91': '1991',
+    '92': '1992',
+    '93': '1993',
+    '94': '1994',
+    '95': '1995',
+    '96': '1996',
+    '97': '1997',
+    '98': '1998',
+    '99': '1999',
+    '00': '2000',
+    '01': '2001',
+    '02': '2002',
+    '03': '2003',
+    '04': '2004',
+    '05': '2005',
+    '06': '2006',
+    '07': '2007',
+    '08': '2008',
+    '09': '2009',
+    '10': '2010',
+    '11': '2011',
+    '12': '2012',
+    '13': '2013',
+    '14': '2014',
+    '15': '2015',
+    '16': '2016',
+    '17': '2017',
+    '18': '2018',
+    '19': '2019'
 }
+
 
 def pdf_to_page_file(pdf_filename, txt_filename):
     fp = open(pdf_filename, 'rb')
     rsrcmgr = PDFResourceManager()
     retstr = io.StringIO()
     print(type(retstr))
-    #codec = 'utf-8'
+    # codec = 'utf-8'
     codec = 'iso-8859-1'
     laparams = LAParams()
     device = TextConverter(rsrcmgr, retstr, codec=codec, laparams=laparams)
@@ -63,11 +65,12 @@ def pdf_to_page_file(pdf_filename, txt_filename):
         print(f"convert {pdf_filename} => {txt_fname}")
         with open(txt_fname, 'wb') as file:
             file.write(data.encode('utf-8'))
-            #file.write(data.encode('iso-8859-1'))
+            # file.write(data.encode('iso-8859-1'))
         data = ''
         retstr.truncate(0)
         retstr.seek(0)
         page_no += 1
+
 
 def get_files_by_pattern(start_dir, pattern):
     filenames = []
@@ -78,42 +81,52 @@ def get_files_by_pattern(start_dir, pattern):
 
     return filenames
 
+
 def flatten_output_filenames(start_dir, filenames, years_dict):
     output_filenames = {}
     for f_name in filenames:
         if f_name.endswith('.pdf'):
             d_name = os.path.dirname(f_name)
             path, edition = os.path.split(d_name)
-            path, year =  os.path.split(path)
+            path, year = os.path.split(path)
             full_year = years_dict[year]
             output_filename = f"ix_{full_year}-{edition}"
             output_filenames[f_name] = os.path.join(start_dir, output_filename)
 
     return output_filenames
 
+
 def convert_pdf_to_page_files(filenames_dict):
     for source_file, target_file in filenames_dict.items():
-        pdf_to_page_file(source_file, target_file) 
+        pdf_to_page_file(source_file, target_file)
 
 
 def remove_small_files(file_size_max_in_bytes):
-    if os.path.getsize(file) <  file_size_max_in_bytes:
+    if os.path.getsize(file) < file_size_max_in_bytes:
         os.remove(file)
 
 
-def dehyphen_txt_file(txt_filename):
-    txt_file = open(txt_filename,'r', encoding='utf-8')
-    text = txt_file.read()
+def dehyphen_text_file(text_filename) -> str:
+    """
+    Return a dehyphed text string from a given text file by name.
+    :param text_filename:
+    :return: text string with dehyphed text
+    """
+    txt_file = open(text_filename, 'r', encoding='utf-8')
+    lines = txt_file.readlines()
+    text_lines = []
+    for line in lines:
+        # remove every line < 6 characters
+        if len(line) > 5:
+            # remove more then one space in each line
+            line = re.sub("\s\s+", " ", line)
+            ln = [line.strip("\n")]
+            text_lines.append(ln)
 
     scorer = FlairScorer(lang="de")
-    special_format = text_to_format(text)
-    fixed_hyphens = scorer.dehyphen(special_format)
+    fixed_hyphens = scorer.dehyphen_paragraph(text_lines)
 
-    # checks if two paragraphs can be joined, useful to, e.g., reverse page breaks.
-    joined_paragraph = scorer.is_split_paragraph(fixed_hyphens[:2])
-    return joined_paragraph
-
-
+    return format_to_paragraph(fixed_hyphens)
 
 
 def main():
@@ -132,38 +145,9 @@ def main():
     # convert the pdf editions to page-based text files
     # convert_pdf_to_page_files(pdf2txt_dict)
 
-    # dehyphen_text = dehyphen_txt_file('/Users/rwartala/Google Drive/data/ix-archive/texts/ix_2019-13_99.txt')
-    # print(dehyphen_text)
-
-    some_german_text = """Dabei geraten die nicht primär monetären Folgen der Cyber-
-kriminalität außerhalb der Unternehmenswirklichkeit oftmals all-
-zu leicht aus dem Blick. Schon seit geraumer Zeit schwappt eine
-Welle  sogenannter  Sextortion-Mails  nach  der  anderen  durchs
-Netz. Täter behaupten, man habe den Rechner des Opfers und
-die Webcam gehackt, Aufnahmen sexueller Handlungen des Be-
-troffenen beim Besuch einschlägiger Erotik-Seiten im Netz an-
-gefertigt und werde diese nunmehr wahlweise dem Arbeitgeber,
-den Facebook-Freunden oder der Familie zusenden, wenn das
-Opfer nicht einen Betrag in virtuellen Währungen als Lösegeld
-überweise.
-
-Für den IT-Professional ist die Erpressermasche leicht als Fake
-zu durchschauen. Der weniger IT-affine Durchschnittsbürger sieht
-sich real und erheblich in seiner Privatsphäre verletzt. Über die
-Hotlines der Strafverfolgungsbehörden melden sich nicht weni-
-ge verzweifelte Anzeigeerstatter. Auch solche Massendelinquenz
-ist geeignet, das Vertrauen in die digitalisierte Wirklichkeit zu
-untergraben.
-"""
-
-    scorer = FlairScorer(lang="de")
-    special_format = text_to_format(some_german_text)
-    fixed_hyphens = scorer.dehyphen(special_format)
-    joined_paragraph = scorer.is_split_paragraph(fixed_hyphens[0], fixed_hyphens[1])
-    print(joined_paragraph)
-
+    dehyphen_text = dehyphen_text_file('/Users/rwartala/Google Drive/data/ix-archive/texts/ix_2019-13_99.txt')
+    print(dehyphen_text)
 
 
 if __name__ == "__main__":
     main()
-
